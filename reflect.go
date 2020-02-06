@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/iancoleman/orderedmap"
 )
 
 // Version is the JSON Schema version.
@@ -27,7 +25,7 @@ var Version = "http://json-schema.org/draft-04/schema#"
 // RFC draft-wright-json-schema-00, section 4.5
 type Schema struct {
 	*Type
-	Definitions Definitions
+	Definitions Definitions `json:"definitions,omitempty"`
 }
 
 // Type represents a JSON Schema object type.
@@ -36,33 +34,33 @@ type Type struct {
 	Version string `json:"$schema,omitempty"` // section 6.1
 	Ref     string `json:"$ref,omitempty"`    // section 7
 	// RFC draft-wright-json-schema-validation-00, section 5
-	MultipleOf           int                    `json:"multipleOf,omitempty"`           // section 5.1
-	Maximum              int                    `json:"maximum,omitempty"`              // section 5.2
-	ExclusiveMaximum     bool                   `json:"exclusiveMaximum,omitempty"`     // section 5.3
-	Minimum              int                    `json:"minimum,omitempty"`              // section 5.4
-	ExclusiveMinimum     bool                   `json:"exclusiveMinimum,omitempty"`     // section 5.5
-	MaxLength            int                    `json:"maxLength,omitempty"`            // section 5.6
-	MinLength            int                    `json:"minLength,omitempty"`            // section 5.7
-	Pattern              string                 `json:"pattern,omitempty"`              // section 5.8
-	AdditionalItems      *Type                  `json:"additionalItems,omitempty"`      // section 5.9
-	Items                *Type                  `json:"items,omitempty"`                // section 5.9
-	MaxItems             int                    `json:"maxItems,omitempty"`             // section 5.10
-	MinItems             int                    `json:"minItems,omitempty"`             // section 5.11
-	UniqueItems          bool                   `json:"uniqueItems,omitempty"`          // section 5.12
-	MaxProperties        int                    `json:"maxProperties,omitempty"`        // section 5.13
-	MinProperties        int                    `json:"minProperties,omitempty"`        // section 5.14
-	Required             []string               `json:"required,omitempty"`             // section 5.15
-	Properties           *orderedmap.OrderedMap `json:"properties,omitempty"`           // section 5.16
-	PatternProperties    map[string]*Type       `json:"patternProperties,omitempty"`    // section 5.17
-	AdditionalProperties json.RawMessage        `json:"additionalProperties,omitempty"` // section 5.18
-	Dependencies         map[string]*Type       `json:"dependencies,omitempty"`         // section 5.19
-	Enum                 []interface{}          `json:"enum,omitempty"`                 // section 5.20
-	Type                 string                 `json:"type,omitempty"`                 // section 5.21
-	AllOf                []*Type                `json:"allOf,omitempty"`                // section 5.22
-	AnyOf                []*Type                `json:"anyOf,omitempty"`                // section 5.23
-	OneOf                []*Type                `json:"oneOf,omitempty"`                // section 5.24
-	Not                  *Type                  `json:"not,omitempty"`                  // section 5.25
-	Definitions          Definitions            `json:"definitions,omitempty"`          // section 5.26
+	MultipleOf           int              `json:"multipleOf,omitempty"`           // section 5.1
+	Maximum              int              `json:"maximum,omitempty"`              // section 5.2
+	ExclusiveMaximum     bool             `json:"exclusiveMaximum,omitempty"`     // section 5.3
+	Minimum              int              `json:"minimum,omitempty"`              // section 5.4
+	ExclusiveMinimum     bool             `json:"exclusiveMinimum,omitempty"`     // section 5.5
+	MaxLength            int              `json:"maxLength,omitempty"`            // section 5.6
+	MinLength            int              `json:"minLength,omitempty"`            // section 5.7
+	Pattern              string           `json:"pattern,omitempty"`              // section 5.8
+	AdditionalItems      *Type            `json:"additionalItems,omitempty"`      // section 5.9
+	Items                *Type            `json:"items,omitempty"`                // section 5.9
+	MaxItems             int              `json:"maxItems,omitempty"`             // section 5.10
+	MinItems             int              `json:"minItems,omitempty"`             // section 5.11
+	UniqueItems          bool             `json:"uniqueItems,omitempty"`          // section 5.12
+	MaxProperties        int              `json:"maxProperties,omitempty"`        // section 5.13
+	MinProperties        int              `json:"minProperties,omitempty"`        // section 5.14
+	Required             []string         `json:"required,omitempty"`             // section 5.15
+	Properties           map[string]*Type `json:"properties,omitempty"`           // section 5.16
+	PatternProperties    map[string]*Type `json:"patternProperties,omitempty"`    // section 5.17
+	AdditionalProperties json.RawMessage  `json:"additionalProperties,omitempty"` // section 5.18
+	Dependencies         map[string]*Type `json:"dependencies,omitempty"`         // section 5.19
+	Enum                 []interface{}    `json:"enum,omitempty"`                 // section 5.20
+	Type                 string           `json:"type,omitempty"`                 // section 5.21
+	AllOf                []*Type          `json:"allOf,omitempty"`                // section 5.22
+	AnyOf                []*Type          `json:"anyOf,omitempty"`                // section 5.23
+	OneOf                []*Type          `json:"oneOf,omitempty"`                // section 5.24
+	Not                  *Type            `json:"not,omitempty"`                  // section 5.25
+	Definitions          Definitions      `json:"definitions,omitempty"`          // section 5.26
 	// RFC draft-wright-json-schema-validation-00, section 6, 7
 	Title       string        `json:"title,omitempty"`       // section 6.1
 	Description string        `json:"description,omitempty"` // section 6.1
@@ -72,8 +70,6 @@ type Type struct {
 	// RFC draft-wright-json-schema-hyperschema-00, section 4
 	Media          *Type  `json:"media,omitempty"`          // section 4.3
 	BinaryEncoding string `json:"binaryEncoding,omitempty"` // section 4.3
-
-	Extras map[string]interface{} `json:"-"`
 }
 
 // Reflect reflects to Schema from a value using the default Reflector
@@ -111,6 +107,17 @@ type Reflector struct {
 
 	// TypeMapper is a function that can be used to map custom Go types to jsconschema types.
 	TypeMapper func(reflect.Type) *Type
+
+	// CustomTypeNames have names for reflect Types that override their default ones
+	CustomTypeNames map[reflect.Type]string
+}
+
+// Name gets the custom type name if it exists, or the default if it doesn't
+func (r *Reflector) Name(typ reflect.Type) string {
+	if name, ok := r.CustomTypeNames[typ]; ok {
+		return name
+	}
+	return typ.Name()
 }
 
 // Reflect reflects to Schema from a value.
@@ -125,7 +132,7 @@ func (r *Reflector) ReflectFromType(t reflect.Type) *Schema {
 		st := &Type{
 			Version:              Version,
 			Type:                 "object",
-			Properties:           orderedmap.New(),
+			Properties:           map[string]*Type{},
 			AdditionalProperties: []byte("false"),
 		}
 		if r.AllowAdditionalProperties {
@@ -133,7 +140,7 @@ func (r *Reflector) ReflectFromType(t reflect.Type) *Schema {
 		}
 		r.reflectStructFields(st, definitions, t)
 		r.reflectStruct(definitions, t)
-		delete(definitions, t.Name())
+		delete(definitions, r.Name(t))
 		return &Schema{Type: st, Definitions: definitions}
 	}
 
@@ -169,8 +176,8 @@ var protoEnumType = reflect.TypeOf((*protoEnum)(nil)).Elem()
 
 func (r *Reflector) reflectTypeToSchema(definitions Definitions, t reflect.Type) *Type {
 	// Already added to definitions?
-	if _, ok := definitions[t.Name()]; ok {
-		return &Type{Ref: "#/definitions/" + t.Name()}
+	if _, ok := definitions[r.Name(t)]; ok {
+		return &Type{Ref: "#/definitions/" + r.Name(t)}
 	}
 
 	// jsonpb will marshal protobuf enum options as either strings or integers.
@@ -267,32 +274,32 @@ func (r *Reflector) reflectStruct(definitions Definitions, t reflect.Type) *Type
 		if reflect.TypeOf(ignored) == t {
 			st := &Type{
 				Type:                 "object",
-				Properties:           orderedmap.New(),
+				Properties:           map[string]*Type{},
 				AdditionalProperties: []byte("true"),
 			}
-			definitions[t.Name()] = st
+			definitions[r.Name(t)] = st
 
 			return &Type{
 				Version: Version,
-				Ref:     "#/definitions/" + t.Name(),
+				Ref:     "#/definitions/" + r.Name(t),
 			}
 
 		}
 	}
 	st := &Type{
 		Type:                 "object",
-		Properties:           orderedmap.New(),
+		Properties:           map[string]*Type{},
 		AdditionalProperties: []byte("false"),
 	}
 	if r.AllowAdditionalProperties {
 		st.AdditionalProperties = []byte("true")
 	}
-	definitions[t.Name()] = st
+	definitions[r.Name(t)] = st
 	r.reflectStructFields(st, definitions, t)
 
 	return &Type{
 		Version: Version,
-		Ref:     "#/definitions/" + t.Name(),
+		Ref:     "#/definitions/" + r.Name(t),
 	}
 }
 
@@ -316,19 +323,18 @@ func (r *Reflector) reflectStructFields(st *Type, definitions Definitions, t ref
 		}
 
 		property := r.reflectTypeToSchema(definitions, f.Type)
-		property.structKeywordsFromTags(f, st, name)
-
-		st.Properties.Set(name, property)
+		property.structKeywordsFromTags(f)
+		st.Properties[name] = property
 		if required {
 			st.Required = append(st.Required, name)
 		}
 	}
 }
 
-func (t *Type) structKeywordsFromTags(f reflect.StructField, parentType *Type, propertyName string) {
+func (t *Type) structKeywordsFromTags(f reflect.StructField) {
 	t.Description = f.Tag.Get("jsonschema_description")
 	tags := strings.Split(f.Tag.Get("jsonschema"), ",")
-	t.genericKeywords(tags, parentType, propertyName)
+	t.genericKeywords(tags)
 	switch t.Type {
 	case "string":
 		t.stringKeywords(tags)
@@ -339,12 +345,10 @@ func (t *Type) structKeywordsFromTags(f reflect.StructField, parentType *Type, p
 	case "array":
 		t.arrayKeywords(tags)
 	}
-	extras := strings.Split(f.Tag.Get("jsonschema_extras"), ",")
-	t.extraKeywords(extras)
 }
 
 // read struct tags for generic keyworks
-func (t *Type) genericKeywords(tags []string, parentType *Type, propertyName string) {
+func (t *Type) genericKeywords(tags []string) {
 	for _, tag := range tags {
 		nameValue := strings.Split(tag, "=")
 		if len(nameValue) == 2 {
@@ -354,43 +358,6 @@ func (t *Type) genericKeywords(tags []string, parentType *Type, propertyName str
 				t.Title = val
 			case "description":
 				t.Description = val
-			case "oneof_required":
-				var typeFound *Type
-				for i := range parentType.OneOf {
-					if parentType.OneOf[i].Title == nameValue[1] {
-						typeFound = parentType.OneOf[i]
-					}
-				}
-				if typeFound == nil {
-					typeFound = &Type{
-						Title:    nameValue[1],
-						Required: []string{},
-					}
-					parentType.OneOf = append(parentType.OneOf, typeFound)
-				}
-				typeFound.Required = append(typeFound.Required, propertyName)
-			case "oneof_type":
-				if t.OneOf == nil {
-					t.OneOf = make([]*Type, 0, 1)
-				}
-				t.Type = ""
-				types := strings.Split(nameValue[1], ";")
-				for _, ty := range types {
-					t.OneOf = append(t.OneOf, &Type{
-						Type: ty,
-					})
-				}
-			case "enum":
-				switch t.Type {
-				case "string":
-					t.Enum = append(t.Enum, val)
-				case "integer":
-					i, _ := strconv.Atoi(val)
-					t.Enum = append(t.Enum, i)
-				case "number":
-					f, _ := strconv.ParseFloat(val, 64)
-					t.Enum = append(t.Enum, f)
-				}
 			}
 		}
 	}
@@ -455,6 +422,8 @@ func (t *Type) numbericKeywords(tags []string) {
 				if i, err := strconv.Atoi(val); err == nil {
 					t.Examples = append(t.Examples, i)
 				}
+			case "pattern":
+				t.Pattern = val
 			}
 		}
 	}
@@ -500,22 +469,6 @@ func (t *Type) arrayKeywords(tags []string) {
 	if len(defaultValues) > 0 {
 		t.Default = defaultValues
 	}
-}
-
-func (t *Type) extraKeywords(tags []string) {
-	for _, tag := range tags {
-		nameValue := strings.Split(tag, "=")
-		if len(nameValue) == 2 {
-			t.setExtra(nameValue[0], nameValue[1])
-		}
-	}
-}
-
-func (t *Type) setExtra(key, val string) {
-	if t.Extras == nil {
-		t.Extras = map[string]interface{}{}
-	}
-	t.Extras[key] = val
 }
 
 func requiredFromJSONTags(tags []string) bool {
@@ -590,47 +543,4 @@ func (r *Reflector) reflectFieldName(f reflect.StructField) (string, bool, bool)
 	}
 
 	return name, exist, required
-}
-
-func (s *Schema) MarshalJSON() ([]byte, error) {
-	b, err := json.Marshal(s.Type)
-	if err != nil {
-		return nil, err
-	}
-	if s.Definitions == nil || len(s.Definitions) == 0 {
-		return b, nil
-	}
-	d, err := json.Marshal(struct {
-		Definitions Definitions `json:"definitions,omitempty"`
-	}{s.Definitions})
-	if err != nil {
-		return nil, err
-	}
-	if len(b) == 2 {
-		return d, nil
-	} else {
-		b[len(b)-1] = ','
-		return append(b, d[1:]...), nil
-	}
-}
-
-func (t *Type) MarshalJSON() ([]byte, error) {
-	type Type_ Type
-	b, err := json.Marshal((*Type_)(t))
-	if err != nil {
-		return nil, err
-	}
-	if t.Extras == nil || len(t.Extras) == 0 {
-		return b, nil
-	}
-	m, err := json.Marshal(t.Extras)
-	if err != nil {
-		return nil, err
-	}
-	if len(b) == 2 {
-		return m, nil
-	} else {
-		b[len(b)-1] = ','
-		return append(b, m[1:]...), nil
-	}
 }
