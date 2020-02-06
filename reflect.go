@@ -35,19 +35,19 @@ type Type struct {
 	Ref     string `json:"$ref,omitempty"`    // section 7
 	// RFC draft-wright-json-schema-validation-00, section 5
 	MultipleOf           int              `json:"multipleOf,omitempty"`           // section 5.1
-	Maximum              int              `json:"maximum,omitempty"`              // section 5.2
+	Maximum              *int             `json:"maximum,omitempty"`              // section 5.2
 	ExclusiveMaximum     bool             `json:"exclusiveMaximum,omitempty"`     // section 5.3
-	Minimum              int              `json:"minimum,omitempty"`              // section 5.4
+	Minimum              *int             `json:"minimum,omitempty"`              // section 5.4
 	ExclusiveMinimum     bool             `json:"exclusiveMinimum,omitempty"`     // section 5.5
-	MaxLength            int              `json:"maxLength,omitempty"`            // section 5.6
+	MaxLength            *int             `json:"maxLength,omitempty"`            // section 5.6
 	MinLength            int              `json:"minLength,omitempty"`            // section 5.7
 	Pattern              string           `json:"pattern,omitempty"`              // section 5.8
 	AdditionalItems      *Type            `json:"additionalItems,omitempty"`      // section 5.9
 	Items                *Type            `json:"items,omitempty"`                // section 5.9
-	MaxItems             int              `json:"maxItems,omitempty"`             // section 5.10
+	MaxItems             *int             `json:"maxItems,omitempty"`             // section 5.10
 	MinItems             int              `json:"minItems,omitempty"`             // section 5.11
 	UniqueItems          bool             `json:"uniqueItems,omitempty"`          // section 5.12
-	MaxProperties        int              `json:"maxProperties,omitempty"`        // section 5.13
+	MaxProperties        *int             `json:"maxProperties,omitempty"`        // section 5.13
 	MinProperties        int              `json:"minProperties,omitempty"`        // section 5.14
 	Required             []string         `json:"required,omitempty"`             // section 5.15
 	Properties           map[string]*Type `json:"properties,omitempty"`           // section 5.16
@@ -230,7 +230,7 @@ func (r *Reflector) reflectTypeToSchema(definitions Definitions, t reflect.Type)
 		returnType := &Type{}
 		if t.Kind() == reflect.Array {
 			returnType.MinItems = t.Len()
-			returnType.MaxItems = returnType.MinItems
+			returnType.MaxItems = &returnType.MinItems
 		}
 		switch t {
 		case byteSliceType:
@@ -375,7 +375,7 @@ func (t *Type) stringKeywords(tags []string) {
 				t.MinLength = i
 			case "maxLength":
 				i, _ := strconv.Atoi(val)
-				t.MaxLength = i
+				t.MaxLength = &i
 			case "pattern":
 				t.Pattern = val
 			case "format":
@@ -405,10 +405,10 @@ func (t *Type) numbericKeywords(tags []string) {
 				t.MultipleOf = i
 			case "minimum":
 				i, _ := strconv.Atoi(val)
-				t.Minimum = i
+				t.Minimum = &i
 			case "maximum":
 				i, _ := strconv.Atoi(val)
-				t.Maximum = i
+				t.Maximum = &i
 			case "exclusiveMaximum":
 				b, _ := strconv.ParseBool(val)
 				t.ExclusiveMaximum = b
@@ -458,7 +458,7 @@ func (t *Type) arrayKeywords(tags []string) {
 				t.MinItems = i
 			case "maxItems":
 				i, _ := strconv.Atoi(val)
-				t.MaxItems = i
+				t.MaxItems = &i
 			case "uniqueItems":
 				t.UniqueItems = true
 			case "default":
